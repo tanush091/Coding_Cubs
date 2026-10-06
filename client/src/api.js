@@ -5,8 +5,8 @@ if (rawApi.endsWith("/api")) {
 const API = rawApi;
 
 async function request(path, options={}) {
-  const isLocal = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-  if (!API && !isLocal) {
+  const isVercel = typeof window !== "undefined" && window.location.hostname.includes("vercel.app");
+  if (isVercel && !API) {
     throw new Error(
       "Backend URL is missing! In your Vercel Dashboard, go to Settings > Environment Variables, add VITE_API_URL = https://your-backend.onrender.com, then click Redeploy."
     );
