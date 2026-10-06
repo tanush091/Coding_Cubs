@@ -2,6 +2,7 @@ services:
   - type: web
     name: neuroquest
     runtime: node
+    plan: free
     buildCommand: npm install && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
@@ -11,12 +12,14 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: ADMIN_TEAM
-        sync: false
+        value: abrar
       - key: ADMIN_PASSWORD
         sync: false
       - key: CORS_ORIGIN
         sync: false
-    disk:
-      name: neuroquest-data
-      mountPath: /opt/render/project/src/server/data
-      sizeGB: 1
+    # To enable persistent disk on a paid plan ($7/mo + $0.25/GB), uncomment below:
+    # disk:
+    #   name: neuroquest-data
+    #   mountPath: /opt/render/project/src/server/data
+    #   sizeGB: 1
+
