@@ -37,17 +37,43 @@ Open `http://localhost:3000`.
 
 ## Production deployment
 
-The included `render.yaml` is configured for a Render Node web service with a persistent disk for the SQLite database used by this version.
+### Architecture (Hybrid: Vercel + Render)
 
-Set these environment variables in the deployment platform:
+- **Frontend (Vercel)**: React + Vite application served globally from Vercel's Edge CDN. Configured via `vercel.json`.
+- **Backend (Render)**: Node.js + Express API with persistent disk storage for SQLite database. Configured via `render.yaml`.
 
-- `NODE_ENV=production`
-- `JWT_SECRET` — long random secret, at least 32 characters
-- `ADMIN_TEAM` — the admin team/username
-- `ADMIN_PASSWORD` — the admin password
-- `CORS_ORIGIN` — the deployed origin if you need a separate frontend origin
+---
 
-**Never commit `.env` or real secrets.**
+### Step 1: Deploy Backend on Render (Database & API)
+
+1. Go to [Render Dashboard](https://dashboard.render.com).
+2. Click **New +** -> **Web Service** (or **Blueprint** and select this repository).
+3. Set:
+   - **Build Command**: `npm install && npm run build`
+   - **Start Command**: `npm start`
+   - **Persistent Disk**: Mount path `/opt/render/project/src/server/data`, Size `1 GB` (or use the pre-configured `render.yaml`).
+4. Set Environment Variables on Render:
+   - `NODE_ENV=production`
+   - `JWT_SECRET` — long random secret, at least 32 characters
+   - `ADMIN_TEAM` — the admin team/username
+   - `ADMIN_PASSWORD` — the admin password
+   - `CORS_ORIGIN` — your Vercel URL (e.g. `https://your-neuroquest.vercel.app` or leave unset during initial setup)
+5. Copy your Render backend URL (e.g., `https://neuroquest-backend.onrender.com`).
+
+---
+
+### Step 2: Deploy Frontend on Vercel
+
+1. Go to [Vercel Dashboard](https://vercel.com/new).
+2. Import your GitHub repository (`NEUROQUEST-R1`).
+3. Vercel will automatically read `vercel.json` (build command: `npm run build`, output directory: `client/dist`).
+4. In the **Environment Variables** section on Vercel, add:
+   - **Key**: `VITE_API_URL`
+   - **Value**: `https://your-backend.onrender.com` (your backend URL from Step 1, without trailing slash)
+5. Click **Deploy**.
+6. Once deployed, copy your Vercel URL and update `CORS_ORIGIN` in your Render backend settings.
+
+---
 
 ### Important database note
 This release uses SQLite with a persistent filesystem path. On Render, keep the persistent disk enabled; do not remove the disk or the live database can be lost when the service is replaced. For a larger multi-instance production deployment, migrate the database layer to PostgreSQL before scaling horizontally.
