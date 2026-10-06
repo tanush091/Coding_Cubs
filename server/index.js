@@ -306,6 +306,8 @@ app.get("/api/admin/teams/:teamName",auth,admin,(req,res)=>{
 if(fs.existsSync(CLIENT_DIST)){
   app.use(express.static(CLIENT_DIST));
   app.get("*",(req,res)=>res.sendFile(path.join(CLIENT_DIST,"index.html")));
+} else {
+  app.get("/",(req,res)=>res.json({ok:true,service:"NEUROQUEST PRO API",health:"/api/health"}));
 }
 
-app.listen(PORT,()=>console.log(`NEUROQUEST PRO API/server on http://localhost:${PORT}`));
+app.listen(PORT, "0.0.0.0", () => console.log(`NEUROQUEST PRO API/server on http://0.0.0.0:${PORT}`));

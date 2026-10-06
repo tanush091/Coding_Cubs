@@ -13,6 +13,7 @@
     "test": "node --test"
   },
   "dependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^11.8.1",
     "compression": "^1.7.4",
@@ -23,14 +24,13 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.4",
-    "concurrently": "^9.1.2",
+    "react-dom": "^18.3.1",
     "vite": "^6.0.7"
   },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
   "engines": {
-    "node": ">=18"
+    "node": ">=18 <=22"
   }
 }
