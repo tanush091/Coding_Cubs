@@ -5,6 +5,13 @@ if (rawApi.endsWith("/api")) {
 const API = rawApi;
 
 async function request(path, options={}) {
+  const isLocal = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+  if (!API && !isLocal) {
+    throw new Error(
+      "Backend URL is missing! In your Vercel Dashboard, go to Settings > Environment Variables, add VITE_API_URL = https://your-backend.onrender.com, then click Redeploy."
+    );
+  }
+
   const token = localStorage.getItem("neuroquest_token");
   const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -14,7 +21,13 @@ async function request(path, options={}) {
     res = await fetch(`${API}/api${path}`, { ...options, headers });
   } catch (err) {
     throw new Error(
-      `Cannot connect to backend API server. ${API ? `Target: ${API}. ` : "VITE_API_URL is empty. "}Please ensure your Render web service is live. (${err.message})`
+      `Cannot connect to backend server (${API || "empty URL"}). Please verify your Render Web Service is running. (${err.message})`
+    );
+  }
+
+  if (res.status === 405) {
+    throw new Error(
+      `HTTP 405 (Method Not Allowed). Your app is sending API calls to Vercel's static frontend instead of your Render Node.js backend. Please set VITE_API_URL in Vercel Settings > Environment Variables to your Render URL (https://your-service.onrender.com), then Redeploy.`
     );
   }
 
@@ -24,7 +37,7 @@ async function request(path, options={}) {
     data = JSON.parse(text);
   } catch {
     throw new Error(
-      `Backend returned HTTP ${res.status} (${res.statusText || "non-JSON"}). If Render is waking up from sleep, wait 30 seconds and retry.`
+      `Backend returned HTTP ${res.status} (${res.statusText || "non-JSON"}). If Render is waking up from free-tier sleep, please wait 30 seconds and retry.`
     );
   }
 

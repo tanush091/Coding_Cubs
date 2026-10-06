@@ -249,7 +249,27 @@ function Admin({onBack}){
   const load=async()=>{setLoading(true);setError("");try{setData(await api.admin());}catch(e){setError(e.message)}finally{setLoading(false)}};
   useEffect(()=>{load()},[]);
   const openTeam=async(team)=>{setError("");try{setSelected(team.team_name);setTeamData(await api.adminTeam(team.team_name));}catch(e){setError(e.message)}};
-  return <div><header className="topbar"><div className="brand"><div className="brand-mark">N</div><div><b>Admin Control Center</b><span>Live data only · NEUROQUEST</span></div></div><div className="top-actions"><button className="btn ghost" onClick={load}>Refresh</button><button className="btn ghost" onClick={onBack}>Back</button></div></header>
+  const exportCSV=()=>{
+    if(!data?.teams?.length) return;
+    const headers=["Rank","Team Name","Representative","Questions Attempted","Correct Answers","Score (Marks)","Last Active"];
+    const rows=data.teams.map((t,i)=>[
+      i+1,
+      `"${(t.team_name||"").replace(/"/g,'""')}"`,
+      `"${(t.member_name||"").replace(/"/g,'""')}"`,
+      t.questions_attempted,
+      t.correct,
+      t.score,
+      `"${t.last_active?new Date(t.last_active).toLocaleString():"-"}"`
+    ]);
+    const csvContent="data:text/csv;charset=utf-8,"+[headers.join(","),...rows.map(e=>e.join(","))].join("\n");
+    const link=document.createElement("a");
+    link.setAttribute("href",encodeURI(csvContent));
+    link.setAttribute("download",`neuroquest_scores_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+  return <div><header className="topbar"><div className="brand"><div className="brand-mark">N</div><div><b>Admin Control Center</b><span>Live data only · NEUROQUEST</span></div></div><div className="top-actions">{data?.teams?.length>0&&<button className="btn primary" onClick={exportCSV}>📥 Export CSV</button>}<button className="btn ghost" onClick={load}>Refresh</button><button className="btn ghost" onClick={onBack}>Back</button></div></header>
     <main className="container admin-page">
       {error&&<div className="alert bad">{error}</div>}
       {loading&&!data?<div className="empty panel">Loading live data…</div>:data&&<>
