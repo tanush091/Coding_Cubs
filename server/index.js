@@ -50,13 +50,17 @@ if (adminHash) {
 }
 
 const app=express();
+app.set("trust proxy", 1);
 app.disable("x-powered-by");
 app.use(helmet({contentSecurityPolicy:false}));
 app.use(compression());
 app.use(cors({origin:CORS_ORIGIN, credentials:true}));
 app.use(express.json({limit:"1mb"}));
-app.use(rateLimit({windowMs:15*60*1000,max:300,standardHeaders:true,legacyHeaders:false}));
-const authLimiter=rateLimit({windowMs:15*60*1000,max:40,standardHeaders:true,legacyHeaders:false});
+
+const rateLimitMax = Number(process.env.RATE_LIMIT_MAX || 10000);
+const authLimitMax = Number(process.env.AUTH_LIMIT_MAX || 2000);
+app.use(rateLimit({windowMs:15*60*1000,max:rateLimitMax,standardHeaders:true,legacyHeaders:false}));
+const authLimiter=rateLimit({windowMs:15*60*1000,max:authLimitMax,standardHeaders:true,legacyHeaders:false});
 
 const publicActivityFields=`
 id,title,icon,skill,description,instructions,rounds,round_seconds,scoring_note
@@ -86,14 +90,14 @@ function publicQuestion(q){
 
 app.get("/api/health",(req,res)=>res.json({ok:true,service:"NEUROQUEST PRO",time:now()}));
 
-app.post("/api/auth/register",authLimiter,(req,res)=>{
+app.post("/api/auth/register",authLimiter,async (req,res)=>{
   const {teamName,name,password}=req.body||{};
   const team=String(teamName||"").trim();
   const member=String(name||"").trim();
   if(!team||!member||!password||password.length<6) return res.status(400).json({error:"Team name, member name and a 6+ character password are required"});
   if(team.toLowerCase()===ADMIN_TEAM.toLowerCase()) return res.status(400).json({error:"That team name is reserved"});
   try{
-    const hash=bcrypt.hashSync(password,12);
+    const hash=await bcrypt.hash(password,10);
     const result=db.prepare("INSERT INTO users(name,email,team_name,password_hash,role) VALUES (?,?,?,?,'student')")
       .run(member,`${team.toLowerCase()}@team.neuroquest.local`,team,hash);
     const user=db.prepare("SELECT id,name,email,team_name,role FROM users WHERE id=?").get(result.lastInsertRowid);
@@ -101,11 +105,13 @@ app.post("/api/auth/register",authLimiter,(req,res)=>{
   }catch(e){res.status(409).json({error:"That team name is already registered"});}
 });
 
-app.post("/api/auth/login",authLimiter,(req,res)=>{
+app.post("/api/auth/login",authLimiter,async (req,res)=>{
   const {teamName,password}=req.body||{};
   const key=String(teamName||"").trim();
   const user=db.prepare("SELECT * FROM users WHERE lower(team_name)=lower(?)").get(key);
-  if(!user||!bcrypt.compareSync(password||"",user.password_hash)) return res.status(401).json({error:"Invalid team name or password"});
+  if(!user) return res.status(401).json({error:"Invalid team name or password"});
+  const isMatch=await bcrypt.compare(password||"",user.password_hash);
+  if(!isMatch) return res.status(401).json({error:"Invalid team name or password"});
   res.json({token:sign(user),user:{id:user.id,name:user.name,email:user.email,teamName:user.team_name,role:user.role}});
 });
 
